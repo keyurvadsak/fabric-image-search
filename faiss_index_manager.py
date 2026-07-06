@@ -188,7 +188,7 @@ def search(
         results.append({
             "rank": rank,
             "path": image_paths[idx],
-            "filename": Path(image_paths[idx]).name,
+            "filename": str(image_paths[idx]).replace("\\", "/").split("/")[-1],
             "score": round(float(score), 4),
         })
 
