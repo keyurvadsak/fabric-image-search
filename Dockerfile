@@ -11,11 +11,11 @@ COPY requirements.txt .
 # Install PyTorch CPU version explicitly (saves ~2GB of space)
 RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-# Install the rest of the requirements
-RUN pip install -r requirements.txt
+# Install the rest of the requirements, ignoring the massive CUDA versions of torch
+RUN grep -ivE "^torch|^torchvision" requirements.txt > req-slim.txt && pip install -r req-slim.txt
 
 # Copy the rest of the application
 COPY . .
 
-# Start the application
-CMD uvicorn main:app --host 0.0.0.0 --port $PORT
+# Start the application using python so it automatically reads the PORT environment variable
+CMD ["python", "main.py"]
