@@ -5,6 +5,4 @@ uvicorn[standard]
 Pillow
 tqdm
 python-multipart
-torch
-torchvision
 numpy
