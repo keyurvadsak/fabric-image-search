@@ -17,5 +17,8 @@ RUN grep -ivE "^torch|^torchvision" requirements.txt > req-slim.txt && pip insta
 # Copy the rest of the application
 COPY . .
 
+# Pre-download ML models so they don't timeout at runtime
+RUN python download_weights.py
+
 # Start the application using python so it automatically reads the PORT environment variable
 CMD ["python", "main.py"]

@@ -35,7 +35,7 @@ app = FastAPI(
 # ── Load FAISS indices on startup ───────────────────────────────────────────────
 
 STORE_DIR = Path("faiss_store")
-IMAGE_BASE_DIR = Path("images")
+IMAGE_BASE_DIR = Path("Images")
 
 resnet_index = None
 clip_index = None
