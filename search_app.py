@@ -13,7 +13,6 @@ Endpoints:
 """
 
 import io
-import os
 from pathlib import Path
 
 import uvicorn
@@ -177,5 +176,4 @@ async def get_stats():
 # ── Run ─────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("search_app:app", host="0.0.0.0", port=port)
+    uvicorn.run("search_app:app", host="0.0.0.0", port=8000, reload=True)

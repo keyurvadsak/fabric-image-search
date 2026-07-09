@@ -11,7 +11,6 @@ Dual embedding extractor for textile similarity search.
 Singleton pattern ensures models are loaded only once.
 """
 
-import gc
 import torch
 import torch.nn as nn
 import numpy as np
@@ -42,38 +41,12 @@ def _get_device():
     return _device
 
 
-def _unload_resnet():
-    """Free ResNet50 from memory to make room for CLIP."""
-    global _resnet_model, _resnet_preprocess
-    if _resnet_model is not None:
-        print("[embeddings] Unloading ResNet50 to free RAM...")
-        del _resnet_model, _resnet_preprocess
-        _resnet_model = None
-        _resnet_preprocess = None
-        gc.collect()
-
-
-def _unload_clip():
-    """Free CLIP from memory to make room for ResNet."""
-    global _clip_model, _clip_preprocess, _clip_tokenizer
-    if _clip_model is not None:
-        print("[embeddings] Unloading CLIP to free RAM...")
-        del _clip_model, _clip_preprocess, _clip_tokenizer
-        _clip_model = None
-        _clip_preprocess = None
-        _clip_tokenizer = None
-        gc.collect()
-
-
 def _load_resnet():
-    """Load ResNet50 as a feature extractor, unloading CLIP first if needed."""
+    """Load ResNet50 as a feature extractor (once)."""
     global _resnet_model, _resnet_preprocess
 
     if _resnet_model is not None:
         return
-
-    # Free CLIP memory first so both models don't sit in RAM simultaneously
-    _unload_clip()
 
     device = _get_device()
     print(f"[embeddings] Loading ResNet50 feature extractor on {device}...")
@@ -99,14 +72,11 @@ def _load_resnet():
 
 
 def _load_clip():
-    """Load OpenCLIP model and tokenizer, unloading ResNet first if needed."""
+    """Load OpenCLIP model and tokenizer (once)."""
     global _clip_model, _clip_preprocess, _clip_tokenizer
 
     if _clip_model is not None:
         return
-
-    # Free ResNet memory first so both models don't sit in RAM simultaneously
-    _unload_resnet()
 
     device = _get_device()
     print(f"[embeddings] Loading OpenCLIP ViT-B-32 on {device}...")
