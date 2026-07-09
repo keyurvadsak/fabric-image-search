@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LabhTex Fabric Finder</title>
+    <meta name="description" content="Upload a fabric image or describe a textile to instantly find the most visually similar fabrics using AI-powered similarity search.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* ── Reset & Variables ─────────────────────────────────── */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.15);
+            --text-primary: #f0f0f5;
+            --text-secondary: #8888a0;
+            --text-muted: #55556a;
+            --accent: #6c5ce7;
+            --accent-glow: rgba(108, 92, 231, 0.3);
+            --accent-secondary: #a29bfe;
+            --success: #00cec9;
+            --success-glow: rgba(0, 206, 201, 0.25);
+            --warning: #fdcb6e;
+            --danger: #ff6b6b;
+            --gradient-accent: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 50%, #74b9ff 100%);
+            --gradient-bg: radial-gradient(ellipse at 20% 50%, rgba(108, 92, 231, 0.08) 0%, transparent 50%),
+                           radial-gradient(ellipse at 80% 20%, rgba(116, 185, 255, 0.05) 0%, transparent 50%);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --shadow-glow: 0 0 40px rgba(108, 92, 231, 0.15);
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: var(--gradient-bg);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Layout ───────────────────────────────────────────── */
+        .app {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+
+        /* ── Header ───────────────────────────────────────────── */
+        .header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .header__badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 16px;
+            border-radius: 100px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--accent-secondary);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header__badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--success-glow); }
+            50% { opacity: 0.7; box-shadow: 0 0 0 8px transparent; }
+        }
+
+        .header h1 {
+            font-size: clamp(32px, 5vw, 48px);
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.1;
+            margin-bottom: 12px;
+        }
+
+        .header p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            max-width: 520px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* ── Mode Toggle ──────────────────────────────────────── */
+        .mode-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 32px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            padding: 4px;
+            max-width: 360px;
+            margin-left: auto;
+            margin-right: auto;
+            backdrop-filter: blur(20px);
+        }
+
+        .mode-toggle__btn {
+            flex: 1;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 100px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .mode-toggle__btn.active {
+            background: var(--gradient-accent);
+            color: white;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+
+        .mode-toggle__btn:not(.active):hover {
+            color: var(--text-primary);
+            background: var(--bg-glass);
+        }
+
+        /* ── Upload Zone ──────────────────────────────────────── */
+        .upload-zone {
+            position: relative;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            padding: 60px 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 48px;
+            overflow: hidden;
+        }
+
+        .upload-zone.hidden { display: none; }
+
+        .upload-zone::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(108, 92, 231, 0.05) 0%, transparent 60%);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .upload-zone:hover,
+        .upload-zone.drag-over {
+            border-color: var(--accent);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .upload-zone:hover::before,
+        .upload-zone.drag-over::before {
+            opacity: 1;
+        }
+
+        .upload-zone__icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            transition: var(--transition);
+        }
+
+        .upload-zone:hover .upload-zone__icon {
+            transform: scale(1.1);
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .upload-zone h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .upload-zone p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .upload-zone p span {
+            color: var(--accent-secondary);
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        .upload-zone input[type="file"] {
+            display: none;
+        }
+
+        /* ── Text Search Zone ─────────────────────────────────── */
+        .text-search-zone {
+            display: none;
+            margin-bottom: 48px;
+        }
+
+        .text-search-zone.active { display: block; animation: fadeSlideUp 0.4s ease; }
+
+        .text-search__card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px;
+            backdrop-filter: blur(20px);
+        }
+
+        .text-search__label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .text-search__input-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .text-search__input {
+            flex: 1;
+            padding: 14px 20px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 15px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .text-search__input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .text-search__input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .text-search__suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .text-search__chip {
+            padding: 6px 14px;
+            border-radius: 100px;
+            border: 1px solid var(--border);
+            background: var(--bg-glass);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .text-search__chip:hover {
+            border-color: var(--accent);
+            color: var(--accent-secondary);
+            background: rgba(108, 92, 231, 0.1);
+        }
+
+        /* ── Preview ──────────────────────────────────────────── */
+        .preview-section {
+            display: none;
+            margin-bottom: 48px;
+        }
+
+        .preview-section.active {
+            display: block;
+            animation: fadeSlideUp 0.5s ease;
+        }
+
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .preview-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            backdrop-filter: blur(20px);
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .preview-card__img {
+            width: 120px;
+            height: 120px;
+            border-radius: var(--radius-sm);
+            object-fit: cover;
+            border: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .preview-card__info {
+            flex: 1;
+        }
+
+        .preview-card__label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .preview-card__name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .preview-card__meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .preview-card__actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 28px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn--primary {
+            background: var(--gradient-accent);
+            color: white;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+
+        .btn--primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px var(--accent-glow);
+        }
+
+        .btn--primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn--ghost {
+            background: var(--bg-glass);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn--ghost:hover {
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+        }
+
+        /* ── Loading ──────────────────────────────────────────── */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 60px 20px;
+            margin-bottom: 48px;
+        }
+
+        .loading.active {
+            display: block;
+            animation: fadeSlideUp 0.4s ease;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .loading p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* ── Results ──────────────────────────────────────────── */
+        .results-section {
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+            animation: fadeSlideUp 0.5s ease;
+        }
+
+        .results-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .results-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .results-header .meta {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .result-card {
+            position: relative;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            transition: var(--transition);
+            backdrop-filter: blur(20px);
+        }
+
+        .result-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow);
+        }
+
+        .result-card__rank {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--accent-secondary);
+            z-index: 2;
+            backdrop-filter: blur(10px);
+        }
+
+        .result-card__rank.gold { background: linear-gradient(135deg, #f9ca24, #f0932b); color: #1a1a2e; border: none; }
+        .result-card__rank.silver { background: linear-gradient(135deg, #dfe6e9, #b2bec3); color: #1a1a2e; border: none; }
+        .result-card__rank.bronze { background: linear-gradient(135deg, #e17055, #d63031); color: white; border: none; }
+
+        .result-card__img-wrap {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            overflow: hidden;
+        }
+
+        .result-card__img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .result-card:hover .result-card__img {
+            transform: scale(1.05);
+        }
+
+        .result-card__score-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .result-card__score-fill {
+            height: 100%;
+            background: var(--gradient-accent);
+            transition: width 1s ease;
+        }
+
+        .result-card__body {
+            padding: 16px;
+        }
+
+        .result-card__filename {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .result-card__score {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .score-value {
+            font-size: 24px;
+            font-weight: 800;
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .score-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* ── Error ────────────────────────────────────────────── */
+        .error-msg {
+            display: none;
+            text-align: center;
+            padding: 24px;
+            border-radius: var(--radius-sm);
+            background: rgba(255, 107, 107, 0.08);
+            border: 1px solid rgba(255, 107, 107, 0.2);
+            color: var(--danger);
+            margin-bottom: 24px;
+        }
+
+        .error-msg.active {
+            display: block;
+            animation: fadeSlideUp 0.3s ease;
+        }
+
+        /* ── Lightbox Modal ───────────────────────────────────── */
+        .lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            cursor: pointer;
+        }
+
+        .lightbox.active {
+            display: flex;
+            animation: fadeIn 0.25s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .lightbox__content {
+            position: relative;
+            max-width: 90vw;
+            max-height: 90vh;
+            cursor: default;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .lightbox__img {
+            max-width: 100%;
+            max-height: 75vh;
+            object-fit: contain;
+            border-radius: var(--radius);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: scaleIn 0.3s ease;
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .lightbox__info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 20px;
+            backdrop-filter: blur(20px);
+        }
+
+        .lightbox__filename {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .lightbox__score {
+            font-size: 15px;
+            font-weight: 700;
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .lightbox__close {
+            position: absolute;
+            top: -48px;
+            right: 0;
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+        }
+
+        .lightbox__close:hover {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        .result-card { cursor: pointer; }
+
+        /* ── Footer ───────────────────────────────────────────── */
+        .footer {
+            text-align: center;
+            margin-top: 80px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* ── Responsive ───────────────────────────────────────── */
+        @media (max-width: 640px) {
+            .preview-card {
+                flex-direction: column;
+                text-align: center;
+            }
+            .preview-card__actions {
+                justify-content: center;
+            }
+            .results-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+            }
+            .result-card__body { padding: 12px; }
+            .score-value { font-size: 20px; }
+            .text-search__input-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header__badge">
+                <span class="dot" id="statusDot"></span>
+                <span id="statusText">Loading...</span>
+            </div>
+            <h1>LabhTex Fabric Finder</h1>
+            <p>Upload a fabric image or describe what you're looking for — AI finds the most similar textiles instantly.</p>
+        </header>
+
+        <!-- Mode Toggle -->
+        <div class="mode-toggle" id="modeToggle">
+            <button class="mode-toggle__btn active" id="btnModeImage" onclick="switchMode('image')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                Image Search
+            </button>
+            <button class="mode-toggle__btn" id="btnModeText" onclick="switchMode('text')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+                Text Search
+            </button>
+        </div>
+
+        <!-- Upload Zone (Image Mode) -->
+        <div class="upload-zone" id="uploadZone">
+            <div class="upload-zone__icon">&#x1F9F5;</div>
+            <h2>Drop your fabric image here</h2>
+            <p>or <span>browse files</span> — JPG, PNG, WebP supported</p>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <!-- Text Search Zone (Text Mode) -->
+        <div class="text-search-zone" id="textSearchZone">
+            <div class="text-search__card">
+                <div class="text-search__label">Describe the fabric you're looking for</div>
+                <div class="text-search__input-row">
+                    <input type="text" class="text-search__input" id="textQueryInput"
+                           placeholder="e.g. red floral silk, blue denim, striped cotton..."
+                           autocomplete="off">
+                    <button class="btn btn--primary" id="textSearchBtn" onclick="performTextSearch()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        Search
+                    </button>
+                </div>
+                <div class="text-search__suggestions">
+                    <span class="text-search__chip" onclick="fillQuery('red silk fabric')">red silk fabric</span>
+                    <span class="text-search__chip" onclick="fillQuery('blue denim texture')">blue denim texture</span>
+                    <span class="text-search__chip" onclick="fillQuery('white cotton')">white cotton</span>
+                    <span class="text-search__chip" onclick="fillQuery('floral print')">floral print</span>
+                    <span class="text-search__chip" onclick="fillQuery('striped pattern')">striped pattern</span>
+                    <span class="text-search__chip" onclick="fillQuery('embroidered fabric')">embroidered fabric</span>
+                    <span class="text-search__chip" onclick="fillQuery('golden brocade')">golden brocade</span>
+                    <span class="text-search__chip" onclick="fillQuery('checkered plaid')">checkered plaid</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error -->
+        <div class="error-msg" id="errorMsg"></div>
+
+        <!-- Preview (Image Mode) -->
+        <section class="preview-section" id="previewSection">
+            <div class="preview-card">
+                <img class="preview-card__img" id="previewImg" src="" alt="Preview">
+                <div class="preview-card__info">
+                    <div class="preview-card__label">Uploaded Image</div>
+                    <div class="preview-card__name" id="previewName">-</div>
+                    <div class="preview-card__meta" id="previewMeta">-</div>
+                </div>
+                <div class="preview-card__actions">
+                    <button class="btn btn--primary" id="searchBtn" onclick="performImageSearch()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        Find Similar
+                    </button>
+                    <button class="btn btn--ghost" onclick="resetUI()">&#x2715;</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Loading -->
+        <div class="loading" id="loadingSection">
+            <div class="spinner"></div>
+            <h3 id="loadingTitle">Searching the fabric database...</h3>
+            <p id="loadingDesc">Analyzing texture, pattern, and color with OpenCLIP</p>
+        </div>
+
+        <!-- Results -->
+        <section class="results-section" id="resultsSection">
+            <div class="results-header">
+                <h2 id="resultsTitle">Top Matches</h2>
+                <span class="meta" id="resultsMeta"></span>
+            </div>
+            <div class="results-grid" id="resultsGrid"></div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            LabhTex Similarity Search &middot; Powered by OpenCLIP + FAISS &middot; <span id="indexCount">-</span> textiles indexed
+        </footer>
+    </div>
+
+    <!-- Lightbox Modal -->
+    <div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+        <div class="lightbox__content" onclick="event.stopPropagation()">
+            <button class="lightbox__close" onclick="closeLightbox()" title="Close">&#x2715;</button>
+            <img class="lightbox__img" id="lightboxImg" src="" alt="">
+            <div class="lightbox__info">
+                <span class="lightbox__filename" id="lightboxFilename"></span>
+                <span class="lightbox__score" id="lightboxScore"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ── State ──────────────────────────────────────────────
+        let selectedFile = null;
+        let currentMode = 'image'; // 'image' or 'text'
+
+        // ── DOM refs ───────────────────────────────────────────
+        const uploadZone     = document.getElementById('uploadZone');
+        const fileInput      = document.getElementById('fileInput');
+        const textSearchZone = document.getElementById('textSearchZone');
+        const textQueryInput = document.getElementById('textQueryInput');
+        const textSearchBtn  = document.getElementById('textSearchBtn');
+        const previewSection = document.getElementById('previewSection');
+        const previewImg     = document.getElementById('previewImg');
+        const previewName    = document.getElementById('previewName');
+        const previewMeta    = document.getElementById('previewMeta');
+        const searchBtn      = document.getElementById('searchBtn');
+        const loadingSection = document.getElementById('loadingSection');
+        const loadingTitle   = document.getElementById('loadingTitle');
+        const loadingDesc    = document.getElementById('loadingDesc');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsTitle   = document.getElementById('resultsTitle');
+        const resultsGrid    = document.getElementById('resultsGrid');
+        const resultsMeta    = document.getElementById('resultsMeta');
+        const errorMsg       = document.getElementById('errorMsg');
+        const statusDot      = document.getElementById('statusDot');
+        const statusText     = document.getElementById('statusText');
+        const indexCount     = document.getElementById('indexCount');
+        const btnModeImage   = document.getElementById('btnModeImage');
+        const btnModeText    = document.getElementById('btnModeText');
+
+        // ── Init ───────────────────────────────────────────────
+        async function init() {
+            try {
+                const res = await fetch('/stats');
+                const data = await res.json();
+                if (data.status === 'loaded') {
+                    statusText.textContent = data.total_indexed.toLocaleString() + ' fabrics indexed';
+                    indexCount.textContent = data.total_indexed.toLocaleString();
+                    statusDot.style.background = 'var(--success)';
+                } else {
+                    statusText.textContent = 'Index not loaded';
+                    statusDot.style.background = 'var(--warning)';
+                }
+            } catch (e) {
+                statusText.textContent = 'Server offline';
+                statusDot.style.background = 'var(--danger)';
+            }
+        }
+        init();
+
+        // ── Mode Toggle ────────────────────────────────────────
+        function switchMode(mode) {
+            currentMode = mode;
+            resetUI();
+
+            btnModeImage.classList.toggle('active', mode === 'image');
+            btnModeText.classList.toggle('active', mode === 'text');
+
+            if (mode === 'image') {
+                uploadZone.classList.remove('hidden');
+                uploadZone.style.display = '';
+                textSearchZone.classList.remove('active');
+            } else {
+                uploadZone.classList.add('hidden');
+                textSearchZone.classList.add('active');
+                textQueryInput.focus();
+            }
+        }
+
+        // ── Drag & Drop ────────────────────────────────────────
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('drag-over');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('drag-over');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) handleFile(files[0]);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFile(e.target.files[0]);
+        });
+
+        // Enter key for text search
+        textQueryInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') performTextSearch();
+        });
+
+        // ── File handling ──────────────────────────────────────
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showError('Please upload an image file (JPG, PNG, or WebP).');
+                return;
+            }
+
+            selectedFile = file;
+            hideError();
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                previewName.textContent = file.name;
+                previewMeta.textContent = (file.size / 1024).toFixed(1) + ' KB' + ' \u00B7 ' + file.type;
+
+                uploadZone.style.display = 'none';
+                previewSection.classList.add('active');
+                resultsSection.classList.remove('active');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ── Text Search ────────────────────────────────────────
+        function fillQuery(text) {
+            textQueryInput.value = text;
+            textQueryInput.focus();
+        }
+
+        async function performTextSearch() {
+            const query = textQueryInput.value.trim();
+            if (!query) {
+                showError('Please enter a text description.');
+                return;
+            }
+
+            textSearchBtn.disabled = true;
+            textSearchBtn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;margin:0"></span> Searching...';
+            loadingTitle.textContent = 'Searching for "' + query + '"...';
+            loadingDesc.textContent = 'Matching your description against fabric embeddings';
+            loadingSection.classList.add('active');
+            resultsSection.classList.remove('active');
+            hideError();
+
+            const formData = new FormData();
+            formData.append('query', query);
+
+            try {
+                const res = await fetch('/search-text?top_k=5', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Search failed');
+                }
+
+                const data = await res.json();
+                displayResults(data, 'text');
+
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                textSearchBtn.disabled = false;
+                textSearchBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> Search';
+                loadingSection.classList.remove('active');
+            }
+        }
+
+        // ── Image Search ───────────────────────────────────────
+        async function performImageSearch() {
+            if (!selectedFile) return;
+
+            searchBtn.disabled = true;
+            searchBtn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;margin:0"></span> Searching...';
+            loadingTitle.textContent = 'Searching the fabric database...';
+            loadingDesc.textContent = 'Analyzing texture, pattern, and color with OpenCLIP';
+            loadingSection.classList.add('active');
+            resultsSection.classList.remove('active');
+            hideError();
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            try {
+                const res = await fetch('/search?top_k=5', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Search failed');
+                }
+
+                const data = await res.json();
+                displayResults(data, 'image');
+
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> Find Similar';
+                loadingSection.classList.remove('active');
+            }
+        }
+
+        // ── Display Results ────────────────────────────────────
+        function displayResults(data, type) {
+            resultsGrid.innerHTML = '';
+
+            if (type === 'text') {
+                resultsTitle.textContent = 'Results for "' + (data.query_text || '') + '"';
+            } else {
+                resultsTitle.textContent = 'Top Matches';
+            }
+
+            resultsMeta.textContent = 'Searched ' + (data.total_indexed ? data.total_indexed.toLocaleString() : '-') + ' textiles';
+
+            data.results.forEach((r, i) => {
+                const scorePercent = (r.score * 100).toFixed(1);
+                const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.onclick = function() { openLightbox(r.image_url, r.filename, scorePercent); };
+                card.innerHTML =
+                    '<div class="result-card__rank ' + rankClass + '">' + r.rank + '</div>' +
+                    '<div class="result-card__img-wrap">' +
+                        '<img class="result-card__img" src="' + r.image_url + '" alt="' + r.filename + '" loading="lazy">' +
+                        '<div class="result-card__score-bar">' +
+                            '<div class="result-card__score-fill" style="width: 0%"></div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="result-card__body">' +
+                        '<div class="result-card__filename" title="' + r.filename + '">' + r.filename + '</div>' +
+                        '<div class="result-card__score">' +
+                            '<span class="score-value">' + scorePercent + '%</span>' +
+                            '<span class="score-label">similarity</span>' +
+                        '</div>' +
+                    '</div>';
+
+                resultsGrid.appendChild(card);
+
+                // Animate score bar
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        card.querySelector('.result-card__score-fill').style.width = scorePercent + '%';
+                    }, 100 + i * 150);
+                });
+            });
+
+            resultsSection.classList.add('active');
+        }
+
+        // ── Helpers ────────────────────────────────────────────
+        function resetUI() {
+            selectedFile = null;
+            fileInput.value = '';
+            previewSection.classList.remove('active');
+            resultsSection.classList.remove('active');
+            loadingSection.classList.remove('active');
+            if (currentMode === 'image') {
+                uploadZone.style.display = '';
+            }
+            hideError();
+        }
+
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorMsg.classList.add('active');
+        }
+
+        function hideError() {
+            errorMsg.classList.remove('active');
+        }
+
+        // ── Lightbox ───────────────────────────────────────────
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightboxImg');
+        const lightboxFilename = document.getElementById('lightboxFilename');
+        const lightboxScore = document.getElementById('lightboxScore');
+
+        function openLightbox(imageUrl, filename, score) {
+            lightboxImg.src = imageUrl;
+            lightboxImg.alt = filename;
+            lightboxFilename.textContent = filename;
+            lightboxScore.textContent = score + '% similarity';
+            lightbox.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox(e) {
+            if (e && e.target !== lightbox) return;
+            lightbox.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && lightbox.classList.contains('active')) {
+                lightbox.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+    </script>
+</body>
+</html>
